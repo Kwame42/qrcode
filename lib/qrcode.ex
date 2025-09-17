@@ -25,7 +25,7 @@ defmodule MQrcode do
   Returns :ok if successful, otherwise prints an error message.
   1. Constructs a URL based on the appellation and year.
   2. Generates a QR code from the URL. The URl format is "https://qr.aubigny.wine/<appellation>_<climate>_<cru>_<color>_<year>.html"
-  3. Saves the QR code as a PNG file named "QRCODE_<appellation>_<year>.png".
+  3. Saves the QR code as a PNG file named "QRCODE_<appellation>_<climate>_<cru>_<color>_<year>_<lot number>.png", where <lot number> is autogenareted by reading the QRCODE_*.png files in the current directory and incrementing the highest lot number (form M<num>) where num is a 4 digit number, and increase by 1.
   4. If parameters are invalid, prints an error message with valid options.
   ## Examples
 
@@ -48,7 +48,7 @@ defmodule MQrcode do
   and climat in @climats_list
   and cru in @crus_list
   and color in @colors_list do
-    link = "#{appellation}_#{climat}_#{cru}_#{color}_#{year}"
+    link = "#{appellation}_#{climat}_#{cru}_#{color}_#{year}_#{lot_number()}"
     |> String.replace("_", " ")
     |> String.replace(~r/\s+/, "_")
     |> String.downcase()
@@ -80,6 +80,21 @@ defmodule MQrcode do
     else
       IO.puts("Directory /var/www/qr.aubigny.wine/ does not exist. Skipping HTML file generation.")
     end
+  end
+
+  defp lot_number do
+    case File.ls!(".")
+	 |> Enum.filter(&String.starts_with?(&1, "QRCODE_"))
+	 |> Enum.map(fn file ->
+	   case Regex.run(~r/QRCODE_.*_(M\d{4})\.png$/, file) do
+	     [_, lot] -> String.slice(lot, 1..-1) |> String.to_integer()
+	     _ -> 0
+	   end
+	 end)
+	 |> Enum.max(fn -> 0 end) do
+	   0 -> "M0001"
+	   max_lot -> "M" <> Integer.to_string(max_lot + 1) |> String.pad_leading(4, "0")
+	 end
   end
 
   def generate_qrcode(_, _, _, _, _) do
