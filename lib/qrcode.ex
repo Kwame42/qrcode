@@ -15,11 +15,10 @@ defmodule MQrcode do
       Valid colors: red, white
   """
   @appelations_list ["mercurey", "rully", "bourgogne"]
-  @crus_list ["village", "1er cru", "grand cru"]
-  @climats_list ["Champs Martin", "Fromange"]
   @colors_list ["red", "white"]
+  @crus_list ["village", "1er cru", "grand cru", "_"]
+  @climats_list ["Champs Martin", "Fromange", "_"]
 
-  
   @doc """
   Generate a QR code for the given wine parameters if they are valid.
   valid parameters are checked against predefined lists.
@@ -30,28 +29,36 @@ defmodule MQrcode do
   4. If parameters are invalid, prints an error message with valid options.
   ## Examples
 
-      iex> MQrcode.generate_qrcode("mercurey", "Champs Martin", "1er cru", "red", 2020)
+      iex> MQrcode.generate_qrcode(2020, "mercurey", "red", "Champs Martin", "1er cru")
       :ok
       Generates a QR code and saves it as "QRCODE_mercurey_2020.png"
-      iex> MQrcode.generate_qrcode("invalid", "Champs Martin", "1er cru", "red", 2020)
+      iex> MQrcode.generate_qrcode("invalid", "Champs Martin", "red", "1er cru")
       Invalid parameters. Please check the appellation, climat, cru, color, and year. must be in the predefined lists.
       Valid appellations: mercurey, rully, bourgogne
       Valid crus: village, 1er cru, grand cru
       Valid climats: Champs Martin, Fromange
       Valid colors: red, white
-  5. generate a html file with basic information about the wine in /var/www/html/<appellation>_<climate>_<cru>_<color>_<year>.html
+  5. generate a html file with basic information about the wine in /var/www/qr.aubigny.wine/<appellation>\_<climate>\_<cru>\_<color>\_<year>.html
   """
-  def generate_qrcode(appellation, climat, cru, color, year)
+  def generate_qrcode(year, "bourgogne", color),
+    do: generate_qrcode(year, "bourgogne", color, "_", "_")
+  
+  def generate_qrcode(year, appellation, color, climat, cru)
   when appellation in @appelations_list
   and climat in @climats_list
   and cru in @crus_list
   and color in @colors_list do
-    "https://qr.aubigny.wine/#{appellation}_#{climat}_#{cru}_#{color}_#{year}.html"
+    link = "#{appellation}_#{climat}_#{cru}_#{color}_#{year}"
+    |> String.replace("_", " ")
+    |> String.replace(~r/\s+/, "_")
+    |> String.downcase()
+    
+    "https://qr.aubigny.wine/#{link}.html"
     |> QRCode.create(:high)
     |> QRCode.render(:png)
-    |> QRCode.save("QRCODE_#{appellation}_#{climat}_#{cru}_#{color}_#{year}.png")
+    |> QRCode.save("QRCODE_#{link}.png")
 
-    if File.exists?("/var/www/html") do
+    if File.exists?("/var/www/qr.aubigny.wine") do
       html_content = """
       <html>
       <head><title>Wine Information</title></head>
@@ -65,10 +72,13 @@ defmodule MQrcode do
       </body>
       </html>
       """
-
-      File.write!("/var/www/html/#{appellation}_#{climat}_#{cru}_#{color}_#{year}.html", html_content)
+      
+      "/var/www/qr.aubigny.wine/#{link}.html"
+      |> String.replace(" ", "_")
+      |> String.downcase()
+      |> File.write!(html_content)
     else
-      IO.puts("Directory /var/www/html does not exist. Skipping HTML file generation.")
+      IO.puts("Directory /var/www/qr.aubigny.wine/ does not exist. Skipping HTML file generation.")
     end
   end
 
@@ -81,4 +91,4 @@ defmodule MQrcode do
     Valid colors: #{Enum.join(@colors_list, ", ")}
     """ |> IO.puts()
   end
-end
+ end
