@@ -40,9 +40,9 @@ defmodule MQrcode do
       Valid colors: red, white
   5. generate a html file with basic information about the wine in /var/www/qr.aubigny.wine/<appellation>\_<climate>\_<cru>\_<color>\_<year>.html
   """
-  def generate_qrcode(year, appellation, color, climat \\ "_", cru \\ "_", html_directory \\ "/var/www/qr.aubigny.wine")
+  def generate_qrcode(year, appellation, color, climat \\ "_", cru \\ "_", html_directory \\ "/var/www/qr.aubigny.wine", energy \\ "312 kJ / 75 kcal")
 
-  def generate_qrcode(year, appellation, color, climat, cru, html_directory)
+  def generate_qrcode(year, appellation, color, climat, cru, html_directory, energy)
   when appellation in @appelations_list
   and climat in @climats_list
   and cru in @crus_list
@@ -51,11 +51,16 @@ defmodule MQrcode do
     |> String.replace("_", " ")
     |> String.replace(~r/\s+/, "_")
     |> String.downcase()
-    
+
+    qr_filename = "QRCODE_#{link}.png"
+
     "https://qr.aubigny.wine/#{link}.html"
     |> QRCode.create(:high)
     |> QRCode.render(:png)
-    |> QRCode.save("QRCODE_#{link}.png")
+    |> QRCode.save(qr_filename)
+
+    # Add energy information text to the QR code image
+    add_energy_text_to_qrcode(qr_filename, energy)
 
     if File.exists?(html_directory) do
       template_path = Path.join(:code.priv_dir(:qrcode), "template/wine.html.eex")
@@ -74,7 +79,8 @@ defmodule MQrcode do
           climat: climat,
           cru: cru,
           color: color,
-          has_organic_logo: File.exists?(logo_dest)
+          has_organic_logo: File.exists?(logo_dest),
+          energy: energy
         ]
       )
 
@@ -87,7 +93,7 @@ defmodule MQrcode do
     end
   end
 
-  def generate_qrcode(_, _, _, _, _, _) do
+  def generate_qrcode(_, _, _, _, _, _, _) do
     """
     Invalid parameters. Please check the appellation, climat, cru, color, and year. must be in the predefined lists.
     Valid appellations: #{Enum.join(@appelations_list, ", ")}
@@ -110,5 +116,74 @@ defmodule MQrcode do
 	   0 -> "LM0001"
 	   max_lot -> "LM" <> Integer.to_string(max_lot + 1) |> String.pad_leading(4, "0")
 	 end
+  end
+
+  defp add_energy_text_to_qrcode(filename, energy) do
+    # Format energy text: E(100ml)=312kJ/75kcal
+    energy_text = "E(100ml)=#{energy |> String.replace(" ", "")}"
+
+    # Try ImageMagick 7 (magick) first, then fall back to ImageMagick 6 (convert)
+    magick_cmd = case System.cmd("magick", ["-version"], stderr_to_stdout: true) do
+      {_, 0} -> "magick"
+      _ -> case System.cmd("convert", ["-version"], stderr_to_stdout: true) do
+        {_, 0} -> "convert"
+        _ -> nil
+      end
+    end
+
+    case magick_cmd do
+      nil ->
+        IO.puts("⚠ ImageMagick not found. QR code generated without text.")
+      cmd ->
+        # Step 1: Add white space at top for header (70px)
+        System.cmd(cmd, [
+          filename,
+          "-background", "white",
+          "-splice", "0x70",
+          "-gravity", "North",
+          filename
+        ])
+
+        # Step 2: Add "INGREDIENT &" at top
+        System.cmd(cmd, [
+          filename,
+          "-gravity", "North",
+          "-pointsize", "24",
+          "-annotate", "+0+10",
+          "INGREDIENT &",
+          filename
+        ])
+
+        # Step 3: Add "NUTRITION" below first line
+        System.cmd(cmd, [
+          filename,
+          "-gravity", "North",
+          "-pointsize", "24",
+          "-annotate", "+0+38",
+          "NUTRITION",
+          filename
+        ])
+
+        # Step 4: Add white space at bottom for energy (60px)
+        System.cmd(cmd, [
+          filename,
+          "-background", "white",
+          "-splice", "0x60",
+          "-gravity", "South",
+          filename
+        ])
+
+        # Step 5: Add energy text at bottom
+        System.cmd(cmd, [
+          filename,
+          "-gravity", "South",
+          "-pointsize", "24",
+          "-annotate", "+0+15",
+          energy_text,
+          filename
+        ])
+
+        IO.puts("✓ Added header and energy info to QR code")
+    end
   end
  end

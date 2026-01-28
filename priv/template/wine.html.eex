@@ -287,7 +287,7 @@
                     <table class="nutrition-table">
                         <tr>
                             <td>Énergie</td>
-                            <td>312 kJ / 75 kcal</td>
+                            <td><%= @energy %></td>
                         </tr>
                         <tr>
                             <td>Matières grasses</td>
