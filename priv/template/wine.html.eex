@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informations Produit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f1e8 0%, #e8dfd2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #8B4513 0%, #6B3410 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .wine-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            line-height: 1.3;
+        }
+
+        .wine-details {
+            margin-top: 20px;
+        }
+
+        .wine-details .domaine {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        .details-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1.05em;
+            opacity: 0.95;
+            letter-spacing: 0.3px;
+        }
+
+        .details-grid span {
+            display: inline;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        section:last-child {
+            margin-bottom: 0;
+        }
+
+        h2 {
+            color: #8B4513;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #D4A574;
+            font-weight: 600;
+        }
+
+        /* INGRÉDIENTS */
+        .ingredients-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .ingredient-item {
+            background: #f9f7f4;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #D4A574;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ingredient-item .icon {
+            font-size: 1.5em;
+            min-width: 30px;
+        }
+
+        .ingredient-item p {
+            color: #333;
+            font-size: 1.05em;
+            line-height: 1.5;
+        }
+
+        .organic-logo {
+            max-width: 50px;
+            height: auto;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        /* DÉCLARATION NUTRITIONNELLE */
+        .nutrition-info {
+            background: #f9f7f4;
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .nutrition-header {
+            color: #8B4513;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #D4A574;
+        }
+
+        .nutrition-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .nutrition-table tr {
+            border-bottom: 1px solid #e0d5c7;
+        }
+
+        .nutrition-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .nutrition-table td {
+            padding: 12px 0;
+            font-size: 1.05em;
+        }
+
+        .nutrition-table td:first-child {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .nutrition-table td:last-child {
+            text-align: right;
+            color: #8B4513;
+            font-weight: 600;
+        }
+
+        /* CONSOMMATION RESPONSABLE */
+        .warnings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .warning-card {
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8e0 100%);
+            border: 2px solid #e8907a;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .warning-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(232, 144, 122, 0.2);
+        }
+
+        .warning-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .warning-card p {
+            color: #8B4513;
+            font-weight: 600;
+            font-size: 1.05em;
+            line-height: 1.4;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .warnings {
+                grid-template-columns: 1fr;
+            }
+
+            .nutrition-table td {
+                padding: 10px 0;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="wine-badge"><%= @year %> | Vin</div>
+            <h1><%= String.capitalize(@appellation) %><%= if @cru != "_", do: " #{@cru}" %><%= if @climat != "_", do: "<br>#{@climat}" %></h1>
+            <div class="wine-details">
+                <p class="domaine"><a href="https://aubigny.wine">"🏰 Domaine d'Aubigny</a></p>
+                <div class="details-grid">
+                    <span>AOC <%= String.capitalize(@appellation) %><%= if @cru != "_", do: " #{@cru}" %></span>
+                    <span>•</span>
+                    <span><%= if @color == "red", do: "Pinot Noir", else: "Chardonnay" %></span>
+                    <span>•</span>
+                    <span>Bourgogne, France</span>
+                    <span>•</span>
+                    <span>Sec</span>
+                </div>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">Ingrédients · Valeurs nutritionnelles · Recommandations</p>
+        </div>
+
+        <div class="content">
+            <!-- SECTION INGRÉDIENTS -->
+            <section id="ingredients">
+                <h2>🍇 Ingrédients</h2>
+                <div class="ingredients-list">
+                    <div class="ingredient-item">
+                        <span class="icon">🌿</span>
+                        <p><strong>Bio</strong> - Produit issu de l'agriculture biologique<%= if @has_organic_logo, do: " <img src=\"ab.png\" alt=\"Agriculture Biologique\" class=\"organic-logo\">" %></p>
+                    </div>
+                    <div class="ingredient-item">
+                        <span class="icon">⚠️</span>
+                        <p><strong>Conservateurs et antioxydants (Sulfites)</strong></p>
+                    </div>
+                    <div class="ingredient-item">
+                        <span class="icon">💨</span>
+                        <p><strong>Mis en bouteille sous atmosphère protectrice</strong></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION DÉCLARATION NUTRITIONNELLE -->
+            <section id="nutrition">
+                <h2>📊 Déclaration Nutritionnelle</h2>
+                <div class="nutrition-info">
+                    <div class="nutrition-header">Valeurs moyennes pour 100 ml</div>
+                    <table class="nutrition-table">
+                        <tr>
+                            <td>Énergie</td>
+                            <td>312 kJ / 75 kcal</td>
+                        </tr>
+                        <tr>
+                            <td>Matières grasses</td>
+                            <td>0 g</td>
+                        </tr>
+                        <tr>
+                            <td>dont acides gras saturés</td>
+                            <td>0 g</td>
+                        </tr>
+                        <tr>
+                            <td>Glucides</td>
+                            <td>0.7 g</td>
+                        </tr>
+                        <tr>
+                            <td>dont sucres</td>
+                            <td>0.0 g</td>
+                        </tr>
+                        <tr>
+                            <td>Protéines</td>
+                            <td>0 g</td>
+                        </tr>
+                        <tr>
+                            <td>Sel</td>
+                            <td>0 g</td>
+                        </tr>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECTION CONSOMMATION RESPONSABLE -->
+            <section id="warnings">
+                <h2>⚠️ Consommation Responsable</h2>
+                <div class="warnings">
+                    <div class="warning-card">
+                        <span class="warning-icon">🚫</span>
+                        <p>Interdit aux moins de 18 ans</p>
+                    </div>
+                    <div class="warning-card">
+                        <span class="warning-icon">🚗</span>
+                        <p>Ne pas conduire</p>
+                    </div>
+                    <div class="warning-card">
+                        <span class="warning-icon">🤰</span>
+                        <p>Déconseillé aux femmes enceintes</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>

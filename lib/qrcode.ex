@@ -40,10 +40,9 @@ defmodule MQrcode do
       Valid colors: red, white
   5. generate a html file with basic information about the wine in /var/www/qr.aubigny.wine/<appellation>\_<climate>\_<cru>\_<color>\_<year>.html
   """
-  def generate_qrcode(year, "bourgogne", color),
-    do: generate_qrcode(year, "bourgogne", color, "_", "_")
-  
-  def generate_qrcode(year, appellation, color, climat, cru)
+  def generate_qrcode(year, appellation, color, climat \\ "_", cru \\ "_", html_directory \\ "/var/www/qr.aubigny.wine")
+
+  def generate_qrcode(year, appellation, color, climat, cru, html_directory)
   when appellation in @appelations_list
   and climat in @climats_list
   and cru in @crus_list
@@ -58,46 +57,37 @@ defmodule MQrcode do
     |> QRCode.render(:png)
     |> QRCode.save("QRCODE_#{link}.png")
 
-    if File.exists?("/var/www/qr.aubigny.wine") do
-      html_content = """
-      <html>
-      <head><title>Wine Information</title></head>
-      <body>
-      <h1>Wine Information</h1>
-      <p>Appellation: #{appellation}</p>
-      <p>Climat: #{climat}</p>
-      <p>Cru: #{cru}</p>
-      <p>Color: #{color}</p>
-      <p>Year: #{year}</p>
-      </body>
-      </html>
-      """
-      
-      "/var/www/qr.aubigny.wine/#{link}.html"
+    if File.exists?(html_directory) do
+      template_path = Path.join(:code.priv_dir(:qrcode), "template/wine.html.eex")
+
+      # Copy organic logo to output directory if not already present
+      logo_source = Path.join(:code.priv_dir(:qrcode), "template/ab.png")
+      logo_dest = Path.join(html_directory, "ab.png")
+      unless File.exists?(logo_dest) do
+        File.cp!(logo_source, logo_dest)
+      end
+
+      html_content = EEx.eval_file(template_path,
+        assigns: [
+          year: year,
+          appellation: appellation,
+          climat: climat,
+          cru: cru,
+          color: color,
+          has_organic_logo: File.exists?(logo_dest)
+        ]
+      )
+
+      Path.join(html_directory, "#{link}.html")
       |> String.replace(" ", "_")
       |> String.downcase()
       |> File.write!(html_content)
     else
-      IO.puts("Directory /var/www/qr.aubigny.wine/ does not exist. Skipping HTML file generation.")
+      IO.puts("Directory #{html_directory} does not exist. Skipping HTML file generation.")
     end
   end
 
-  defp lot_number do
-    case File.ls!(".")
-	 |> Enum.filter(&String.starts_with?(&1, "QRCODE_"))
-	 |> Enum.map(fn file ->
-	   case Regex.run(~r/QRCODE_.*_(M\d{4})\.png$/, file) do
-	     [_, lot] -> String.slice(lot, 1..-1) |> String.to_integer()
-	     _ -> 0
-	   end
-	 end)
-	 |> Enum.max(fn -> 0 end) do
-	   0 -> "M0001"
-	   max_lot -> "M" <> Integer.to_string(max_lot + 1) |> String.pad_leading(4, "0")
-	 end
-  end
-
-  def generate_qrcode(_, _, _, _, _) do
+  def generate_qrcode(_, _, _, _, _, _) do
     """
     Invalid parameters. Please check the appellation, climat, cru, color, and year. must be in the predefined lists.
     Valid appellations: #{Enum.join(@appelations_list, ", ")}
@@ -105,5 +95,20 @@ defmodule MQrcode do
     Valid climats: #{Enum.join(@climats_list, ", ")}
     Valid colors: #{Enum.join(@colors_list, ", ")}
     """ |> IO.puts()
+  end
+
+  defp lot_number do
+    case File.ls!(".")
+	 |> Enum.filter(&String.starts_with?(&1, "QRCODE_"))
+	 |> Enum.map(fn file ->
+	   case Regex.run(~r/QRCODE_.*_(M\d{4})\.png$/, file) do
+	     [_, lot] -> String.slice(lot, 1..-1//1) |> String.to_integer()
+	     _ -> 0
+	   end
+	 end)
+	 |> Enum.max(fn -> 0 end) do
+	   0 -> "LM0001"
+	   max_lot -> "LM" <> Integer.to_string(max_lot + 1) |> String.pad_leading(4, "0")
+	 end
   end
  end
