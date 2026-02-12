@@ -40,13 +40,14 @@ defmodule MQrcode do
       Valid colors: red, white
   5. generate a html file with basic information about the wine in /var/www/qr.aubigny.wine/<appellation>\_<climate>\_<cru>\_<color>\_<year>.html
   """
-  def generate_qrcode(year, appellation, color, climat \\ "_", cru \\ "_", html_directory \\ "/var/www/qr.aubigny.wine", energy \\ "312 kJ / 75 kcal")
+  def generate_qrcode(year, appellation, color, climat \\ "_", cru \\ "_", energy \\ "312 kJ / 75 kcal")
 
-  def generate_qrcode(year, appellation, color, climat, cru, html_directory, energy)
+  def generate_qrcode(year, appellation, color, climat, cru, energy)
   when appellation in @appelations_list
   and climat in @climats_list
   and cru in @crus_list
   and color in @colors_list do
+    html_directory = "/var/www/qr.aubigny.wine"
     link = "#{appellation}_#{climat}_#{cru}_#{color}_#{year}_#{lot_number()}"
     |> String.replace("_", " ")
     |> String.replace(~r/\s+/, "_")
@@ -60,6 +61,7 @@ defmodule MQrcode do
     |> QRCode.save(qr_filename)
 
     # Add energy information text to the QR code image
+    IO.inspect(energy)
     add_energy_text_to_qrcode(qr_filename, energy)
 
     if File.exists?(html_directory) do
@@ -105,17 +107,26 @@ defmodule MQrcode do
 
   defp lot_number do
     case File.ls!(".")
-	 |> Enum.filter(&String.starts_with?(&1, "QRCODE_"))
-	 |> Enum.map(fn file ->
-	   case Regex.run(~r/QRCODE_.*_(M\d{4})\.png$/, file) do
-	     [_, lot] -> String.slice(lot, 1..-1//1) |> String.to_integer()
-	     _ -> 0
-	   end
-	 end)
-	 |> Enum.max(fn -> 0 end) do
-	   0 -> "LM0001"
-	   max_lot -> "LM" <> Integer.to_string(max_lot + 1) |> String.pad_leading(4, "0")
-	 end
+    |> Enum.filter(&String.starts_with?(&1, "QRCODE_"))
+    |> Enum.map(fn file ->
+      case Regex.run(~r/QRCODE_.*LM(\d{4})\.png$/i, file) do
+	[_, lot] -> String.to_integer(lot)
+	_ -> 0
+      end
+    end)
+    |> IO.inspect()
+    |> Enum.max(fn -> 0 end) do
+      0 -> "LM0001"
+      max_lot ->
+	IO.inspect(max_lot)
+	number =
+	  max_lot
+	  |> Kernel.+(1)
+	  |> Integer.to_string()
+	  |> String.pad_leading(4, "0")
+	  
+	"LM#{number}"
+    end
   end
 
   defp add_energy_text_to_qrcode(filename, energy) do
@@ -123,18 +134,21 @@ defmodule MQrcode do
     energy_text = "E(100ml)=#{energy |> String.replace(" ", "")}"
 
     # Try ImageMagick 7 (magick) first, then fall back to ImageMagick 6 (convert)
-    magick_cmd = case System.cmd("magick", ["-version"], stderr_to_stdout: true) do
-      {_, 0} -> "magick"
-      _ -> case System.cmd("convert", ["-version"], stderr_to_stdout: true) do
-        {_, 0} -> "convert"
-        _ -> nil
-      end
-    end
+    magick_cmd = "convert"
+      # case System.cmd("magick", ["-version"], stderr_to_stdout: true) do
+      # {_, 0} -> "magick"
+      # _ -> case System.cmd("convert", ["-version"], stderr_to_stdout: true) do
+      #  {_, 0} -> "convert"
+      #  _ -> nil
+      # end
+    #  end
 
     case magick_cmd do
       nil ->
         IO.puts("⚠ ImageMagick not found. QR code generated without text.")
       cmd ->
+
+	pointsize="50"
         # Step 1: Add white space at top for header (70px)
         System.cmd(cmd, [
           filename,
@@ -148,9 +162,9 @@ defmodule MQrcode do
         System.cmd(cmd, [
           filename,
           "-gravity", "North",
-          "-pointsize", "24",
+          "-pointsize", "#{pointsize}",
           "-annotate", "+0+10",
-          "INGREDIENT &",
+          "INGREDIENTS &",
           filename
         ])
 
@@ -158,27 +172,37 @@ defmodule MQrcode do
         System.cmd(cmd, [
           filename,
           "-gravity", "North",
-          "-pointsize", "24",
-          "-annotate", "+0+38",
+          "-pointsize", "#{pointsize}",
+          "-annotate", "+0+58",
           "NUTRITION",
           filename
         ])
 
+
+	System.cmd("convert", [
+  filename,
+  "-gravity", "North",
+  "-background", "white",
+  "-extent", "650x670",  # width x new_height
+  filename
+])
+
+	
         # Step 4: Add white space at bottom for energy (60px)
-        System.cmd(cmd, [
-          filename,
-          "-background", "white",
-          "-splice", "0x60",
-          "-gravity", "South",
-          filename
-        ])
+#        System.cmd(cmd, [
+#          filename,
+#          "-background", "white",
+#          "-splice", "0x70",
+#          "-gravity", "South",
+#          filename
+#        ])
 
         # Step 5: Add energy text at bottom
         System.cmd(cmd, [
           filename,
           "-gravity", "South",
-          "-pointsize", "24",
-          "-annotate", "+0+15",
+          "-pointsize", "#{pointsize}",
+          "-annotate", "+0+0",
           energy_text,
           filename
         ])
